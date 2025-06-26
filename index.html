@@ -121,54 +121,54 @@
     }
   </script>
 <script>
+  // Map currency codes to CoinGecko IDs
+  function mapToId(code) {
+    const map = {
+      BTC: "bitcoin",
+      ETH: "ethereum",
+      USDT: "tether",
+      SOL: "solana",
+      XOF: "tether" // ✅ CFA mapped to tether
+    };
+    return map[code] || "tether";
+  }
 
-    async function convertCurrency() {
-        const amount = parseFloat(document.getElementById("amount").value);
-        const from = document.getElementById("from-currency").value;
-        const to = document.getElementById("to-currency").value;
-        const resultField = document.getElementById("result");
-      
-        if (!amount || from === to) {
-          resultField.textContent = "Enter valid amount and different currencies.";
-          return;
-        }
-      
-        try {
-          const fromId = mapToId(from);
-          const toId = mapToId(to);
-      
-          const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${fromId},${toId}&vs_currencies=usd`);
-          const data = await res.json();
-      
-          const fromRate = data[fromId]?.usd;
-          const toRate = data[toId]?.usd;
-      
-          if (!fromRate || !toRate) throw new Error("Missing data");
-      
-          const result = (amount * fromRate) / toRate;
-          resultField.textContent = `${amount} ${from} = ${result.toFixed(6)} ${to}`;
-        } catch (err) {
-          resultField.textContent = "Error fetching conversion rate.";
-        }
-      }
-      
-      function mapToId(code) {
-        const map = {
-          NGN: "naira",
-          XOF: "usd",       // CFA mapped to USD (since CoinGecko doesn’t support CFA)
-          BTC: "bitcoin",
-          ETH: "ethereum",
-          USDT: "tether",
-          SOL: "solana"
-        };
-        return map[code] || "usd";
-      }
-      
-        // Set current year in copyright
-  document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("year").textContent = new Date().getFullYear();
-  });
-    </script>
+  // Main conversion function
+  async function convertCurrency() {
+    const amount = parseFloat(document.getElementById("amount").value);
+    const from = document.getElementById("from-currency").value;
+    const to = document.getElementById("to-currency").value;
+    const resultField = document.getElementById("result");
+
+    if (!amount || from === to) {
+      resultField.textContent = "Enter a valid amount and different currencies.";
+      return;
+    }
+
+    try {
+      const fromId = mapToId(from);
+      const toId = mapToId(to);
+
+      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${fromId},${toId}&vs_currencies=usd`);
+      const data = await res.json();
+
+      let fromRate = data[fromId]?.usd;
+      let toRate = data[toId]?.usd;
+
+      if (!fromRate || !toRate) throw new Error("Missing rate data");
+
+      // ✅ Apply 10% deduction to FROM rate only
+      fromRate *= 0.9;
+
+      const result = (amount * fromRate) / toRate;
+      resultField.textContent = `${amount} ${from} = ${result.toFixed(4)} ${to} `;
+    } catch (error) {
+      console.error(error);
+      resultField.textContent = "Error fetching conversion rate.";
+    }
+  }
+</script>
+
 
   <footer style="bottom: 2px;">&copy; 2025 Fleet Transactions. All rights reserved.</footer>
 
