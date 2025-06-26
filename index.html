@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fleet Transactions </title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+  <!-- Bootstrap Icons -->
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+/>
+
+  <!-- Stylish Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@700&display=swap" rel="stylesheet">
+
+</head>
+<body>
+  
+  <div class="app-wrapper">
+    <div class="app-container">
+
+      <!-- Top Navbar -->
+      <div class="top-nav">
+        <div class="nav-row">
+          <div class="brand">
+            <img src="images/logo.jpeg" style="height: 50px; width: 50px;" alt="">
+            Fleet Transactions
+          </div>
+      
+          <!-- 👇 Social Media Icons (TOP RIGHT) -->
+          <div class="social-icons">
+        <!-- Social Media Icons (CDN-based) -->
+<a href="https://api.whatsapp.com/message/4XRZFZZOQNDGC1" target="_blank">
+    <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" alt="WhatsApp" style="width:24px; height:24px; margin-right: 10px;">
+  </a>
+  
+  <a href="https://www.instagram.com/fleet.transactions/?igsh=MXEwaXQyYjdiaXJtcA%3D%3D&utm_source=qr#" >
+    <img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" alt="Instagram" style="width:24px; height:24px;">
+  </a>
+  
+          </div>
+      
+          <!-- Optional: Cart -->
+          <div id="cart-container" class="hidden"></div>
+        </div>
+      
+        <div class="underline"></div>
+      </div>
+      
+      <div class="app-content">  
+     
+        <div class="slider-container">
+            <div class="slider" id="slider">
+              <img  src="images/usdt.jpeg" alt="Slide 1" class="slide active">
+              <img  src="images/solana.jpeg" alt="Slide 2" class="slide">
+              <img  src="images/bitcoin.jpeg" alt="Slide 3" class="slide">
+              <img  src="images/CFA.jpeg" alt="Slide 4" class="slide ">
+              <img  src="images/etherum.jpeg" alt="Slide 5" class="slide">
+          
+            </div>
+          
+            <div class="dots" id="dots">
+              <span class="dot active-dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>       
+<!-- Currency Converter (Black & White Modern UI with Google Fonts & Mobile Friendly) -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+<div class="converter-container">
+  <h5 style="color: rgb(243, 113, 7);">Converter</h5>
+  <div class="converter-form">
+    <input type="number" id="amount" placeholder="Enter amount" />
+    <div class="selectors">
+      <select id="from-currency">
+        <option value="USDT">USDT</option>
+        <option value="XOF">CFA</option>
+        <option value="BTC">Bitcoin</option>
+        <option value="ETH">Ethereum</option>
+        <option value="SOL">Solana</option>   
+      </select>
+      <span class="arrow">⇌</span>
+      <select id="to-currency">
+        <option value="BTC">Bitcoin</option>
+        <option value="XOF">CFA</option>
+        <option value="ETH">Ethereum</option>
+        <option value="SOL">Solana</option>
+        <option value="USDT">USDT</option>
+      </select>
+    </div>
+    <button style="background-color: rgb(243, 113, 7);" onclick="convertCurrency()">Convert</button>
+  </div>
+  <div class="result" id="result"></div>
+</div>
+
+
+
+<div class="bottom-converter">
+    <a style="text-decoration: none;" href="https://api.whatsapp.com/message/4XRZFZZOQNDGC1"> <button class="converter-button">Complete Exchange</button></a>
+ 
+</div>
+    
+<script>
+    function updatePrice(id, price, clicked) {
+      document.getElementById(`price-${id}`).innerText = price;
+  
+      // Remove 'active' from siblings
+      const allCircles = clicked.parentElement.querySelectorAll('.circle');
+      allCircles.forEach(c => c.classList.remove('active'));
+  
+      clicked.classList.add('active');
+    }
+  </script>
+<script>
+
+    async function convertCurrency() {
+        const amount = parseFloat(document.getElementById("amount").value);
+        const from = document.getElementById("from-currency").value;
+        const to = document.getElementById("to-currency").value;
+        const resultField = document.getElementById("result");
+      
+        if (!amount || from === to) {
+          resultField.textContent = "Enter valid amount and different currencies.";
+          return;
+        }
+      
+        try {
+          const fromId = mapToId(from);
+          const toId = mapToId(to);
+      
+          const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${fromId},${toId}&vs_currencies=usd`);
+          const data = await res.json();
+      
+          const fromRate = data[fromId]?.usd;
+          const toRate = data[toId]?.usd;
+      
+          if (!fromRate || !toRate) throw new Error("Missing data");
+      
+          const result = (amount * fromRate) / toRate;
+          resultField.textContent = `${amount} ${from} = ${result.toFixed(6)} ${to}`;
+        } catch (err) {
+          resultField.textContent = "Error fetching conversion rate.";
+        }
+      }
+      
+      function mapToId(code) {
+        const map = {
+          NGN: "naira",
+          XOF: "usd",       // CFA mapped to USD (since CoinGecko doesn’t support CFA)
+          BTC: "bitcoin",
+          ETH: "ethereum",
+          USDT: "tether",
+          SOL: "solana"
+        };
+        return map[code] || "usd";
+      }
+      
+        // Set current year in copyright
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("year").textContent = new Date().getFullYear();
+  });
+    </script>
+
+  <footer style="bottom: 2px;">&copy; 2025 Fleet Transactions. All rights reserved.</footer>
+
+</div>
+</div>
+</div>
+   <script>
+  const slides = document.querySelectorAll('.slide');
+  const dots = document.querySelectorAll('.dot');
+  let currentIndex = 0;
+
+  function showSlide(index) {
+    slides.forEach((slide, i) => {
+      slide.classList.remove('active');
+      dots[i].classList.remove('active-dot');
+      slide.style.display = i === index ? 'block' : 'none';
+    });
+
+    slides[index].classList.add('active');
+    dots[index].classList.add('active-dot');
+  }
+
+  function nextSlide() {
+    currentIndex = (currentIndex + 1) % slides.length;
+    showSlide(currentIndex);
+  }
+
+  setInterval(nextSlide, 4000); // Change slide every 4s
+  showSlide(currentIndex);
+</script>
+
+
+
+
+<script>
+  setTimeout(() => {
+    document.getElementById('preloader').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+  }, 5000); // 5000 milliseconds = 5 seconds
+</script>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
