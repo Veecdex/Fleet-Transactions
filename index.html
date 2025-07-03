@@ -84,17 +84,19 @@
       <select id="from-currency">
         <option value="USDT">USDT</option>
         <option value="XOF">CFA</option>
+        <option value="NGN">Naira</option>
         <option value="BTC">Bitcoin</option>
         <option value="ETH">Ethereum</option>
-        <option value="SOL">Solana</option>   
+        <option value="SOL">Solana</option>  
       </select>
       <span class="arrow">⇌</span>
       <select id="to-currency">
-        <option value="BTC">Bitcoin</option>
+        <option value="USDT">USDT</option>
         <option value="XOF">CFA</option>
+        <option value="NGN">Naira</option>
+        <option value="BTC">Bitcoin</option>
         <option value="ETH">Ethereum</option>
         <option value="SOL">Solana</option>
-        <option value="USDT">USDT</option>
       </select>
     </div>
     <button style="background-color: rgb(243, 113, 7);" onclick="convertCurrency()">Convert</button>
@@ -120,20 +122,23 @@
       clicked.classList.add('active');
     }
   </script>
+  
 <script>
-  // Map currency codes to CoinGecko IDs
-  function mapToId(code) {
-    const map = {
-      BTC: "bitcoin",
-      ETH: "ethereum",
-      USDT: "tether",
-      SOL: "solana",
-      XOF: "tether" // ✅ CFA mapped to tether
-    };
-    return map[code] || "tether";
+  // ✅ Hardcoded actual rates
+  const usdToXof = 555;   // 1 USD = 555 CFA
+  const usdToNgn = 1500;  // 1 USD = 1500 NGN
+
+  const cryptoMap = {
+    BTC: "bitcoin",
+    ETH: "ethereum",
+    USDT: "tether",
+    SOL: "solana"
+  };
+
+  function isFiat(currency) {
+    return currency === "XOF" || currency === "NGN";
   }
 
-  // Main conversion function
   async function convertCurrency() {
     const amount = parseFloat(document.getElementById("amount").value);
     const from = document.getElementById("from-currency").value;
@@ -146,28 +151,106 @@
     }
 
     try {
-      const fromId = mapToId(from);
-      const toId = mapToId(to);
+      let fromRateUSD, toRateUSD;
 
-      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${fromId},${toId}&vs_currencies=usd`);
-      const data = await res.json();
+      // Get crypto prices in USD if needed
+      const ids = [];
+      if (!isFiat(from)) ids.push(cryptoMap[from]);
+      if (!isFiat(to)) ids.push(cryptoMap[to]);
 
-      let fromRate = data[fromId]?.usd;
-      let toRate = data[toId]?.usd;
+      let cryptoData = {};
+      if (ids.length > 0) {
+        const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=usd`;
+        const res = await fetch(url);
+        cryptoData = await res.json();
+      }
 
-      if (!fromRate || !toRate) throw new Error("Missing rate data");
+      // Get USD rate for "from" currency
+      if (isFiat(from)) {
+        fromRateUSD = from === "XOF" ? 1 / usdToXof : 1 / usdToNgn;
+      } else {
+        fromRateUSD = cryptoData[cryptoMap[from]]?.usd;
+        if (!fromRateUSD) throw new Error("Invalid FROM crypto rate");
+        fromRateUSD *= 0.9; // 🔥 Deduct 10%
+      }
 
-      // ✅ Apply 10% deduction to FROM rate only
-      fromRate *= 0.9;
+      // Get USD rate for "to" currency
+      if (isFiat(to)) {
+        toRateUSD = to === "XOF" ? 1 / usdToXof : 1 / usdToNgn;
+        toRateUSD = 1 / toRateUSD; // Convert to CFA/NGN from USD
+      } else {
+        toRateUSD = cryptoData[cryptoMap[to]]?.usd;
+        if (!toRateUSD) throw new Error("Invalid TO crypto rate");
+      }
 
-      const result = (amount * fromRate) / toRate;
-      resultField.textContent = `${amount} ${from} = ${result.toFixed(4)} ${to} `;
+      // Final conversion
+      const result = (amount * fromRateUSD) / toRateUSD;
+      resultField.textContent = `${amount} ${from} = ${result.toFixed(4)} ${to}`;
     } catch (error) {
       console.error(error);
       resultField.textContent = "Error fetching conversion rate.";
     }
   }
 </script>
+
+<script>
+  function convertCurrency() {
+    const amount = parseFloat(document.getElementById("amount").value);
+    const from = document.getElementById("from-currency").value;
+    const to = document.getElementById("to-currency").value;
+    const resultField = document.getElementById("result");
+
+    if (!amount || from === to) {
+      resultField.textContent = "Enter a valid amount and different currencies.";
+      return;
+    }
+
+    // Hardcoded rates
+    const USDT_TO_CFA = 557;
+    const USDT_TO_NGN = 1520;
+
+    let result;
+
+    // ✅ USDT → CFA
+    if (from === "USDT" && to === "XOF") {
+      const rate = USDT_TO_CFA * 0.9;
+      result = amount * rate;
+      resultField.textContent = `${amount} USDT = ${result.toFixed(2)} CFA`;
+    }
+
+    // ✅ CFA → USDT
+    else if (from === "XOF" && to === "USDT") {
+      const rate = 1 / (USDT_TO_CFA * 0.9);
+      result = amount * rate;
+      resultField.textContent = `${amount} CFA = ${result.toFixed(4)} USDT`;
+    }
+
+    // ✅ USDT → NGN
+    else if (from === "USDT" && to === "NGN") {
+      const rate = USDT_TO_NGN * 0.9;
+      result = amount * rate;
+      resultField.textContent = `${amount} USDT = ${result.toFixed(2)} NGN`;
+    }
+
+    // ✅ NGN → USDT
+    else if (from === "NGN" && to === "USDT") {
+      const rate = 1 / (USDT_TO_NGN * 0.9);
+      result = amount * rate;
+      resultField.textContent = `${amount} NGN = ${result.toFixed(4)} USDT`;
+    }
+
+    // ❌ All other combinations involving CFA or NGN
+    else if (to === "XOF" || to === "NGN" || from === "XOF" || from === "NGN") {
+      resultField.textContent = "Rate unavailable for this currency pair.";
+    }
+
+    // ❌ Any other conversion (crypto to crypto)
+    else {
+      resultField.textContent = "Rate unavailable for this currency pair.";
+    }
+  }
+</script>
+
 
 
   <footer style="bottom: 2px;">&copy; 2025 Fleet Transactions. All rights reserved.</footer>
