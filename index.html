@@ -205,51 +205,95 @@
       return;
     }
 
-    // Hardcoded rates
+    // 🚫 Block invalid CFA or NGN pairings (only allowed with USDT)
+    const badPairs = (
+      (from === "XOF" && to !== "USDT") ||
+      (to === "XOF" && from !== "USDT") ||
+      (from === "NGN" && to !== "USDT") ||
+      (to === "NGN" && from !== "USDT")
+    );
+
+    if (badPairs) {
+      resultField.textContent = "Rate unavailable for this currency pair.";
+      return;
+    }
+
+    // ✅ Hardcoded rates
     const USDT_TO_CFA = 557;
-    const USDT_TO_NGN = 1520;
+    const USDT_TO_NGN = 1500;
 
     let result;
 
-    // ✅ USDT → CFA
+    // ✅ USDT ↔ CFA
     if (from === "USDT" && to === "XOF") {
       const rate = USDT_TO_CFA * 0.9;
       result = amount * rate;
       resultField.textContent = `${amount} USDT = ${result.toFixed(2)} CFA`;
     }
-
-    // ✅ CFA → USDT
     else if (from === "XOF" && to === "USDT") {
       const rate = 1 / (USDT_TO_CFA * 0.9);
       result = amount * rate;
       resultField.textContent = `${amount} CFA = ${result.toFixed(4)} USDT`;
     }
 
-    // ✅ USDT → NGN
+    // ✅ USDT ↔ NGN
     else if (from === "USDT" && to === "NGN") {
       const rate = USDT_TO_NGN * 0.9;
       result = amount * rate;
       resultField.textContent = `${amount} USDT = ${result.toFixed(2)} NGN`;
     }
-
-    // ✅ NGN → USDT
     else if (from === "NGN" && to === "USDT") {
       const rate = 1 / (USDT_TO_NGN * 0.9);
       result = amount * rate;
       resultField.textContent = `${amount} NGN = ${result.toFixed(4)} USDT`;
     }
 
-    // ❌ All other combinations involving CFA or NGN
-    else if (to === "XOF" || to === "NGN" || from === "XOF" || from === "NGN") {
-      resultField.textContent = "Rate unavailable for this currency pair.";
-    }
-
-    // ❌ Any other conversion (crypto to crypto)
+    // ✅ All other allowed crypto-to-crypto (with 10% deduction on fromRate)
     else {
-      resultField.textContent = "Rate unavailable for this currency pair.";
+      const mapToId = (code) => {
+        const map = {
+          BTC: "bitcoin",
+          ETH: "ethereum",
+          USDT: "tether",
+          SOL: "solana"
+        };
+        return map[code];
+      };
+
+      const fromId = mapToId(from);
+      const toId = mapToId(to);
+
+      if (!fromId || !toId) {
+        resultField.textContent = "Conversion not supported.";
+        return;
+      }
+
+      fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${fromId},${toId}&vs_currencies=usd`)
+        .then(res => res.json())
+        .then(data => {
+          let fromRate = data[fromId]?.usd;
+          let toRate = data[toId]?.usd;
+
+          if (!fromRate || !toRate) {
+            resultField.textContent = "Live rate unavailable.";
+            return;
+          }
+
+          // 🔥 Apply 10% deduction on fromRate
+          fromRate *= 0.9;
+
+          const result = (amount * fromRate) / toRate;
+          resultField.textContent = `${amount} ${from} = ${result.toFixed(4)} ${to}`;
+        })
+        .catch(() => {
+          resultField.textContent = "Error fetching rate.";
+        });
     }
   }
 </script>
+
+
+
 
 
 
